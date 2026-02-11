@@ -1,0 +1,17 @@
+name: XMusic
+targets:
+  XMusic:
+    type: application
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - XMusic/Sources
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.xmusic.app
+      GENERATE_INFOPLIST_FILE: YES
+      INFOPLIST_FILE: XMusic/Info.plist
+      SWIFT_VERSION: "6.0"
+      MACOSX_DEPLOYMENT_TARGET: "15.0"
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      CODE_SIGN_IDENTITY: "-"
+      CODE_SIGN_STYLE: Automatic

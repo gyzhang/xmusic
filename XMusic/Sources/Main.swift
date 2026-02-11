@@ -1,0 +1,29 @@
+import SwiftUI
+import AVFoundation
+
+@main
+struct XMusicApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+                .frame(minWidth: 1000, minHeight: 700)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 1200, height: 800)
+        .commands {
+            CommandGroup(replacing: .newItem) {}
+        }
+    }
+}
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        if let window = NSApplication.shared.windows.first {
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+            window.isMovableByWindowBackground = true
+        }
+    }
+}
