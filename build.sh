@@ -73,6 +73,8 @@ cat > "${CONTENTS}/Info.plist" << 'EOF'
     <string>1.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon.png</string>
     <key>LSMinimumSystemVersion</key>
     <string>15.0</string>
     <key>NSPrincipalClass</key>
@@ -87,6 +89,12 @@ EOF
 
 # 创建 PkgInfo
 echo "APPL????" > "${CONTENTS}/PkgInfo"
+
+# Copy app icon
+if [ -f "icons/AppIcon.png" ]; then
+    cp "icons/AppIcon.png" "${RESOURCES}/AppIcon.png"
+    echo "✅ App icon copied successfully!"
+fi
 
 echo "✅ ${APP_BUNDLE} created successfully!"
 echo ""
