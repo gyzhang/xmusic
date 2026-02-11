@@ -23,8 +23,10 @@ struct ContentView: View {
                 player: player,
                 searchText: searchText
             )
+            .frame(minWidth: 400, idealWidth: 500)
         } detail: {
             NowPlayingView(player: player, library: library)
+                .frame(minWidth: 350, idealWidth: 400)
         }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {

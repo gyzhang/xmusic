@@ -96,6 +96,10 @@ if [ -f "icons/AppIcon.png" ]; then
     echo "✅ App icon copied successfully!"
 fi
 
+# 删除多余的命令行可执行文件
+rm -f "build/XMusic"
+echo "✅ Cleaned up command line executable!"
+
 echo "✅ ${APP_BUNDLE} created successfully!"
 echo ""
 echo "To run:"

@@ -64,11 +64,39 @@ struct AlbumArtworkView: View {
     
     var body: some View {
         ZStack {
-            if let track = track, let artwork = track.artwork, let nsImage = NSImage(data: artwork) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
+            if let track = track {
+                // 首先尝试加载音频文件内置的封面
+                if let artwork = track.artwork, let nsImage = NSImage(data: artwork) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else if let coverImage = loadLocalCoverImage(for: track) {
+                    // 尝试加载与歌曲同名的本地图片文件
+                    coverImage
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    // 显示默认占位符
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.gray.opacity(0.3),
+                                        Color.gray.opacity(0.1)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        
+                        Image(systemName: "music.note")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.secondary)
+                    }
+                }
             } else {
+                // 显示默认占位符
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(
@@ -95,6 +123,29 @@ struct AlbumArtworkView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
         )
+    }
+    
+    // 加载与歌曲同名的本地图片文件
+    private func loadLocalCoverImage(for track: Track) -> Image? {
+        // 获取歌曲文件所在目录
+        let directory = track.url.deletingLastPathComponent()
+        
+        // 获取歌曲文件名（不含扩展名）
+        let fileName = track.url.deletingPathExtension().lastPathComponent
+        
+        // 尝试常见的图片扩展名
+        let imageExtensions = ["jpg", "jpeg", "png", "gif", "webp"]
+        
+        for ext in imageExtensions {
+            let imageURL = directory.appendingPathComponent("\(fileName).\(ext)")
+            if FileManager.default.fileExists(atPath: imageURL.path) {
+                if let nsImage = NSImage(contentsOf: imageURL) {
+                    return Image(nsImage: nsImage)
+                }
+            }
+        }
+        
+        return nil
     }
 }
 
