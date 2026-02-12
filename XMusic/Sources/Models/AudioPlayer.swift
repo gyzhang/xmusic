@@ -101,7 +101,7 @@ class AudioPlayer: ObservableObject {
     
     func seek(to progress: Double) {
         guard let player = player else { return }
-        let newTime = progress * duration
+        let newTime = progress * (player.duration)
         player.currentTime = newTime
         currentTime = newTime
         playbackProgress = progress

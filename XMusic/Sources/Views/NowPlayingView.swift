@@ -176,8 +176,9 @@ struct ProgressBarView: View {
                         .offset(x: geometry.size.width * CGFloat(isDragging ? dragProgress : player.playbackProgress) - (isDragging ? 7 : 5))
                         .animation(.easeInOut(duration: 0.1), value: isDragging)
                 }
+                .padding(.vertical, 10)
                 .contentShape(Rectangle())
-                .gesture(
+                .highPriorityGesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { value in
                             isDragging = true
@@ -189,7 +190,7 @@ struct ProgressBarView: View {
                         }
                 )
             }
-            .frame(height: 20)
+            .frame(height: 40)
             
             HStack {
                 Text(formatTime(isDragging ? dragProgress * player.duration : player.currentTime))
