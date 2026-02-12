@@ -23,7 +23,7 @@ struct ContentView: View {
                 player: player,
                 searchText: searchText
             )
-            .frame(minWidth: 400, idealWidth: 500)
+            .frame(minWidth: 500, idealWidth: 600)
         } detail: {
             NowPlayingView(player: player, library: library)
                 .frame(minWidth: 350, idealWidth: 400)
