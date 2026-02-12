@@ -159,7 +159,7 @@ struct TrackRowView: View {
                 .cornerRadius(4)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                Text(truncateText(track.title, maxLength: 12))
+                Text(truncateText(track.title, maxLength: 50))
                     .font(.system(size: 13))
                     .fontWeight(isCurrentTrack ? .semibold : .regular)
                     .foregroundStyle(isCurrentTrack ? Color.accentColor : Color.primary)
@@ -188,7 +188,7 @@ struct TrackRowView: View {
                 isHovering = $0
             }
             
-            if isHovering && track.title.count > 12 {
+            if isHovering && track.title.count > 50 {
                 Text(track.title)
                     .font(.system(size: 12))
                     .padding(6)
