@@ -19,7 +19,7 @@ struct ContentView: View {
             .frame(minWidth: 200, idealWidth: 240)
         } content: {
             ContentAreaView(
-                selectedTab: selectedTab,
+                selectedTab: $selectedTab,
                 library: library,
                 player: player,
                 searchText: searchText

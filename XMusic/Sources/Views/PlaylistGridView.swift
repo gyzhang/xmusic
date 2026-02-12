@@ -3,6 +3,7 @@ import SwiftUI
 struct PlaylistGridView: View {
     let playlists: [Playlist]
     @ObservedObject var library: MusicLibrary
+    @Binding var selectedTab: SidebarItem
     @State private var showingCreatePlaylist = false
     @State private var newPlaylistName = ""
     
@@ -33,7 +34,13 @@ struct PlaylistGridView: View {
                 } else {
                     LazyVGrid(columns: columns, spacing: 20) {
                         ForEach(playlists) { playlist in
-                            PlaylistCardView(playlist: playlist, library: library)
+                            PlaylistCardView(
+                                playlist: playlist, 
+                                library: library,
+                                onTap: {
+                                    selectedTab = .playlist(playlist)
+                                }
+                            )
                         }
                     }
                     .padding()
@@ -59,6 +66,7 @@ struct PlaylistCardView: View {
     let playlist: Playlist
     @ObservedObject var library: MusicLibrary
     @State private var isHovering = false
+    var onTap: (() -> Void)? = nil
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -99,6 +107,10 @@ struct PlaylistCardView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap?()
         }
         .contextMenu {
             Button("删除播放列表") {

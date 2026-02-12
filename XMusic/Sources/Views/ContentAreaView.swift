@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentAreaView: View {
-    let selectedTab: SidebarItem
+    @Binding var selectedTab: SidebarItem
     @ObservedObject var library: MusicLibrary
     @ObservedObject var player: AudioPlayer
     let searchText: String
@@ -30,7 +30,8 @@ struct ContentAreaView: View {
             case .playlists:
                 PlaylistGridView(
                     playlists: library.playlists,
-                    library: library
+                    library: library,
+                    selectedTab: $selectedTab
                 )
             case .playlist(let playlist):
                 TrackListView(
