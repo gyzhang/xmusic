@@ -149,12 +149,35 @@ class MusicLibrary: ObservableObject {
     }
     
     private func saveLibrary() {
-        if let encoded = try? JSONEncoder().encode(tracks.map { $0.url.absoluteString }) {
-            UserDefaults.standard.set(encoded, forKey: "musicLibrary")
+        // 保存歌曲 URL
+        if let encodedTracks = try? JSONEncoder().encode(tracks.map { $0.url.absoluteString }) {
+            UserDefaults.standard.set(encodedTracks, forKey: "musicLibrary")
+        }
+        
+        // 保存播放列表
+        struct PlaylistData: Codable {
+            let id: UUID
+            let name: String
+            let trackIDs: [UUID]
+            let createdAt: Date
+        }
+        
+        let playlistData = playlists.map { playlist in
+            PlaylistData(
+                id: playlist.id,
+                name: playlist.name,
+                trackIDs: playlist.tracks.map { $0.id },
+                createdAt: playlist.createdAt
+            )
+        }
+        
+        if let encodedPlaylists = try? JSONEncoder().encode(playlistData) {
+            UserDefaults.standard.set(encodedPlaylists, forKey: "musicPlaylists")
         }
     }
     
     private func loadLibrary() {
+        // 加载歌曲
         guard let data = UserDefaults.standard.data(forKey: "musicLibrary"),
               let urls = try? JSONDecoder().decode([String].self, from: data) else {
             return
@@ -170,6 +193,31 @@ class MusicLibrary: ObservableObject {
         
         tracks = loadedTracks
         updateAlbumsAndArtists()
+        
+        // 加载播放列表
+        struct PlaylistData: Codable {
+            let id: UUID
+            let name: String
+            let trackIDs: [UUID]
+            let createdAt: Date
+        }
+        
+        if let playlistData = UserDefaults.standard.data(forKey: "musicPlaylists"),
+           let decodedPlaylists = try? JSONDecoder().decode([PlaylistData].self, from: playlistData) {
+            
+            var loadedPlaylists: [Playlist] = []
+            for playlistInfo in decodedPlaylists {
+                // 查找对应的歌曲
+                let playlistTracks = tracks.filter { playlistInfo.trackIDs.contains($0.id) }
+                var playlist = Playlist(name: playlistInfo.name, tracks: playlistTracks)
+                // 恢复原始 ID
+                playlist.id = playlistInfo.id
+                playlist.createdAt = playlistInfo.createdAt
+                loadedPlaylists.append(playlist)
+            }
+            
+            playlists = loadedPlaylists
+        }
     }
     
     func search(query: String) -> [Track] {
@@ -216,12 +264,13 @@ struct Artist: Identifiable, Equatable {
 }
 
 struct Playlist: Identifiable, Equatable, Hashable {
-    let id = UUID()
+    var id: UUID
     var name: String
     var tracks: [Track]
-    let createdAt: Date
+    var createdAt: Date
     
     init(name: String, tracks: [Track] = []) {
+        self.id = UUID()
         self.name = name
         self.tracks = tracks
         self.createdAt = Date()
