@@ -37,7 +37,8 @@ struct ContentAreaView: View {
                     tracks: playlist.tracks,
                     player: player,
                     library: library,
-                    title: playlist.name
+                    title: playlist.name,
+                    playlist: playlist
                 )
             }
         }
@@ -49,6 +50,7 @@ struct TrackListView: View {
     @ObservedObject var player: AudioPlayer
     @ObservedObject var library: MusicLibrary
     var title: String = "歌曲"
+    var playlist: Playlist? = nil
     
     var body: some View {
         VStack(spacing: 0) {
@@ -82,8 +84,31 @@ struct TrackListView: View {
                         player.play()
                     }
                     
-                    Button("添加到播放列表") {
-                        // TODO: 显示播放列表选择器
+                    Menu("添加到播放列表") {
+                        if library.playlists.isEmpty {
+                            Button("暂无播放列表") {
+                                // 不做任何操作
+                            }
+                            .disabled(true)
+                        } else {
+                            ForEach(library.playlists) { targetPlaylist in
+                                // 避免添加到当前播放列表
+                                if targetPlaylist.id != playlist?.id {
+                                    Button(action: {
+                                        library.addTrackToPlaylist(track, playlist: targetPlaylist)
+                                    }) {
+                                        Text(targetPlaylist.name)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 只在播放列表视图中显示从播放列表中移除选项
+                    if let currentPlaylist = playlist {
+                        Button("从播放列表中移除") {
+                            library.removeTrackFromPlaylist(track, playlist: currentPlaylist)
+                        }
                     }
                     
                     Divider()
@@ -284,5 +309,63 @@ struct SpectrumView: View {
         }
         .frame(height: 40)
         .padding(.vertical, 2)
+    }
+}
+
+struct PlaylistSelectorView: View {
+    let track: Track
+    @ObservedObject var library: MusicLibrary
+    @Binding var isPresented: Bool
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("选择播放列表")
+                .font(.title)
+                .fontWeight(.bold)
+            
+            if library.playlists.isEmpty {
+                VStack(spacing: 10) {
+                    Image(systemName: "music.note.list")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.secondary)
+                    Text("暂无播放列表")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                    Text("请先创建一个播放列表")
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                }
+            } else {
+                VStack(spacing: 5) {
+                    ForEach(library.playlists) { playlist in
+                        Button(action: {
+                            library.addTrackToPlaylist(track, playlist: playlist)
+                            isPresented = false
+                        }) {
+                            HStack {
+                                Image(systemName: "music.note.list")
+                                    .padding(.trailing, 10)
+                                Text(playlist.name)
+                                Spacer()
+                                Text("\(playlist.tracks.count) 首歌曲")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding()
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(8)
+                        }
+                    }
+                }
+            }
+            
+            Button("取消") {
+                isPresented = false
+            }
+            .padding()
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(8)
+        }
+        .padding(20)
+        .frame(minWidth: 300, minHeight: 200)
     }
 }

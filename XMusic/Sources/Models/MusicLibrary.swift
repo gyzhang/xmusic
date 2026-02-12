@@ -93,6 +93,26 @@ class MusicLibrary: ObservableObject {
         saveLibrary()
     }
     
+    func addTrackToPlaylist(_ track: Track, playlist: Playlist) {
+        if let index = playlists.firstIndex(where: { $0.id == playlist.id }) {
+            var updatedPlaylist = playlists[index]
+            if !updatedPlaylist.tracks.contains(where: { $0.id == track.id }) {
+                updatedPlaylist.tracks.append(track)
+                playlists[index] = updatedPlaylist
+                saveLibrary()
+            }
+        }
+    }
+    
+    func removeTrackFromPlaylist(_ track: Track, playlist: Playlist) {
+        if let index = playlists.firstIndex(where: { $0.id == playlist.id }) {
+            var updatedPlaylist = playlists[index]
+            updatedPlaylist.tracks.removeAll { $0.id == track.id }
+            playlists[index] = updatedPlaylist
+            saveLibrary()
+        }
+    }
+    
     func updateAlbumsAndArtists() {
         var albumDict: [String: Album] = [:]
         var artistDict: [String: Artist] = [:]
