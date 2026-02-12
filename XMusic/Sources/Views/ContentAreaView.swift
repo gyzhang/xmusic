@@ -105,55 +105,83 @@ struct TrackRowView: View {
     let track: Track
     let isPlaying: Bool
     let isCurrentTrack: Bool
+    @State private var isHovering = false
     
     var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                if let artwork = track.artwork, let nsImage = NSImage(data: artwork) {
-                    Image(nsImage: nsImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } else if let coverImage = loadLocalCoverImage(for: track) {
-                    coverImage
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } else {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.3))
-                        .overlay(
-                            Image(systemName: "music.note")
-                                .foregroundStyle(.secondary)
-                        )
+        ZStack(alignment: .leading) {
+            HStack(spacing: 12) {
+                ZStack {
+                    if let artwork = track.artwork, let nsImage = NSImage(data: artwork) {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else if let coverImage = loadLocalCoverImage(for: track) {
+                        coverImage
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.gray.opacity(0.3))
+                            .overlay(
+                                Image(systemName: "music.note")
+                                    .foregroundStyle(.secondary)
+                            )
+                    }
                 }
-            }
-            .frame(width: 40, height: 40)
-            .cornerRadius(4)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(track.title)
-                    .font(.system(size: 13))
-                    .fontWeight(isCurrentTrack ? .semibold : .regular)
-                    .foregroundStyle(isCurrentTrack ? Color.accentColor : Color.primary)
+                .frame(width: 40, height: 40)
+                .cornerRadius(4)
                 
-                Text(track.artist)
-                    .font(.system(size: 11))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(truncateText(track.title, maxLength: 12))
+                        .font(.system(size: 13))
+                        .fontWeight(isCurrentTrack ? .semibold : .regular)
+                        .foregroundStyle(isCurrentTrack ? Color.accentColor : Color.primary)
+                    
+                    Text(track.artist)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
+                
+                if isPlaying {
+                    PlayingIndicatorView()
+                        .frame(width: 20, height: 20)
+                }
+                
+                Text(track.formattedDuration)
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
+                    .frame(width: 50, alignment: .trailing)
+            }
+            .padding(.vertical, 4)
+            .background(isCurrentTrack ? Color.accentColor.opacity(0.1) : Color.clear)
+            .contentShape(Rectangle())
+            .onHover {
+                isHovering = $0
             }
             
-            Spacer()
-            
-            if isPlaying {
-                PlayingIndicatorView()
-                    .frame(width: 20, height: 20)
+            if isHovering && track.title.count > 12 {
+                Text(track.title)
+                    .font(.system(size: 12))
+                    .padding(6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.black.opacity(0.8))
+                    )
+                    .foregroundStyle(.white)
+                    .offset(x: 50, y: -10)
+                    .zIndex(1000)
+                    .fixedSize()
             }
-            
-            Text(track.formattedDuration)
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-                .frame(width: 50, alignment: .trailing)
         }
-        .padding(.vertical, 4)
-        .background(isCurrentTrack ? Color.accentColor.opacity(0.1) : Color.clear)
+    }
+    
+    private func truncateText(_ text: String, maxLength: Int) -> String {
+        if text.count <= maxLength {
+            return text
+        }
+        return String(text.prefix(maxLength)) + "..."
     }
     
     // 加载与歌曲同名的本地图片文件
