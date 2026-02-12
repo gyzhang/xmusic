@@ -93,18 +93,51 @@ class AudioPlayer: ObservableObject {
     private func generateSpectrumData() {
         var magnitudes = [Float](repeating: 0.0, count: spectrumData.count)
         
+        // 时间因子
+        let timeFactor = Float(Date().timeIntervalSince1970 * 15.0)
+        
         // 生成模拟频谱数据
         for i in 0..<spectrumData.count {
-            // 基础频率
-            let baseFrequency = Float(i) * 0.1
-            // 时间因子
-            let timeFactor = Float(Date().timeIntervalSince1970 * 10.0)
-            // 生成随时间变化的值
-            let value = sin(baseFrequency + timeFactor * 0.1) * 0.5 + 0.5
+            // 为不同频率范围设置不同的参数
+            var frequencyMultiplier: Float
+            var amplitudeMultiplier: Float
+            
+            // 低频范围 (0-9)
+            if i < 10 {
+                frequencyMultiplier = 0.1 + Float(i) * 0.05
+                amplitudeMultiplier = 0.8 + Float(i) * 0.02
+            }
+            // 中频范围 (10-19)
+            else if i < 20 {
+                frequencyMultiplier = 0.6 + Float(i-10) * 0.08
+                amplitudeMultiplier = 1.0 + Float(i-10) * 0.01
+            }
+            // 高频范围 (20-29)
+            else {
+                frequencyMultiplier = 1.4 + Float(i-20) * 0.1
+                amplitudeMultiplier = 0.7 + Float(i-20) * 0.03
+            }
+            
+            // 基础波形 - 组合多个正弦波以增加复杂度
+            let baseValue1 = sin(Float(i) * frequencyMultiplier + timeFactor * 0.1) * 0.5
+            let baseValue2 = sin(Float(i) * frequencyMultiplier * 1.5 + timeFactor * 0.15) * 0.3
+            let baseValue3 = sin(Float(i) * frequencyMultiplier * 2.0 + timeFactor * 0.2) * 0.2
+            let combinedValue = (baseValue1 + baseValue2 + baseValue3) + 0.5
+            
             // 添加随机变化
-            let randomFactor = Float.random(in: 0.7...1.0)
-            magnitudes[i] = value * randomFactor
-            magnitudes[i] = min(max(magnitudes[i], 0.0), 1.0)
+            let randomFactor = Float.random(in: 0.5...1.5)
+            
+            // 计算最终值
+            var finalValue = combinedValue * amplitudeMultiplier * randomFactor
+            
+            // 偶尔添加突发峰值
+            let peakChance = Float.random(in: 0.0...1.0)
+            if peakChance < 0.1 {
+                finalValue += Float.random(in: 0.3...0.8)
+            }
+            
+            // 限制在 0.0 到 1.0 之间
+            magnitudes[i] = min(max(finalValue, 0.0), 1.0)
         }
         
         // 更新频谱数据
