@@ -1,8 +1,9 @@
 import Foundation
 import AVFoundation
+import CryptoKit
 
 struct Track: Identifiable, Equatable, Hashable {
-    let id = UUID()
+    let id: UUID
     let url: URL
     let title: String
     let artist: String
@@ -12,6 +13,32 @@ struct Track: Identifiable, Equatable, Hashable {
     let year: String?
     let genre: String?
     let trackNumber: Int?
+    
+    init(url: URL, title: String, artist: String, album: String, duration: TimeInterval, artwork: Data?, year: String?, genre: String?, trackNumber: Int?) {
+        // 使用 URL 的哈希值生成稳定的 UUID
+        let urlHash = url.path.md5()
+        // 确保哈希值长度足够
+        let uuidString = urlHash.padding(toLength: 32, withPad: "0", startingAt: 0)
+        // 创建 UUID（使用哈希值的不同部分）
+        let uuidParts = [
+            uuidString.prefix(8),
+            uuidString.dropFirst(8).prefix(4),
+            uuidString.dropFirst(12).prefix(4),
+            uuidString.dropFirst(16).prefix(4),
+            uuidString.dropFirst(20).prefix(12)
+        ]
+        let formattedUuidString = uuidParts.map(String.init).joined(separator: "-")
+        self.id = UUID(uuidString: formattedUuidString) ?? UUID()
+        self.url = url
+        self.title = title
+        self.artist = artist
+        self.album = album
+        self.duration = duration
+        self.artwork = artwork
+        self.year = year
+        self.genre = genre
+        self.trackNumber = trackNumber
+    }
     
     var fileName: String {
         url.deletingPathExtension().lastPathComponent
@@ -33,6 +60,14 @@ struct Track: Identifiable, Equatable, Hashable {
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+}
+
+extension String {
+    func md5() -> String {
+        let data = Data(self.utf8)
+        let hash = Insecure.MD5.hash(data: data)
+        return hash.map { String(format: "%02x", $0) }.joined()
     }
 }
 
