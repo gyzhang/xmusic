@@ -113,6 +113,10 @@ struct TrackRowView: View {
                     Image(nsImage: nsImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
+                } else if let coverImage = loadLocalCoverImage(for: track) {
+                    coverImage
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
                 } else {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.gray.opacity(0.3))
@@ -150,6 +154,38 @@ struct TrackRowView: View {
         }
         .padding(.vertical, 4)
         .background(isCurrentTrack ? Color.accentColor.opacity(0.1) : Color.clear)
+    }
+    
+    // 加载与歌曲同名的本地图片文件
+    private func loadLocalCoverImage(for track: Track) -> Image? {
+        // 获取歌曲文件所在目录
+        let directory = track.url.deletingLastPathComponent()
+        
+        // 尝试常见的图片扩展名
+        let imageExtensions = ["jpg", "jpeg", "png", "gif", "webp"]
+        
+        // 1. 首先尝试加载与歌曲同名的图片文件
+        let fileName = track.url.deletingPathExtension().lastPathComponent
+        for ext in imageExtensions {
+            let imageURL = directory.appendingPathComponent("\(fileName).\(ext)")
+            if FileManager.default.fileExists(atPath: imageURL.path) {
+                if let nsImage = NSImage(contentsOf: imageURL) {
+                    return Image(nsImage: nsImage)
+                }
+            }
+        }
+        
+        // 2. 如果找不到同名图片，尝试加载同目录下名为 "cover" 的图片文件
+        for ext in imageExtensions {
+            let imageURL = directory.appendingPathComponent("cover.\(ext)")
+            if FileManager.default.fileExists(atPath: imageURL.path) {
+                if let nsImage = NSImage(contentsOf: imageURL) {
+                    return Image(nsImage: nsImage)
+                }
+            }
+        }
+        
+        return nil
     }
 }
 
