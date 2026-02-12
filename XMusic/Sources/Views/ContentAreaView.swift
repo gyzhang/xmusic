@@ -68,7 +68,8 @@ struct TrackListView: View {
                 TrackRowView(
                     track: track,
                     isPlaying: player.currentTrack?.id == track.id && player.isPlaying,
-                    isCurrentTrack: player.currentTrack?.id == track.id
+                    isCurrentTrack: player.currentTrack?.id == track.id,
+                    spectrumData: player.spectrumData
                 )
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -105,6 +106,7 @@ struct TrackRowView: View {
     let track: Track
     let isPlaying: Bool
     let isCurrentTrack: Bool
+    let spectrumData: [Float]
     @State private var isHovering = false
     
     var body: some View {
@@ -132,27 +134,27 @@ struct TrackRowView: View {
                 .cornerRadius(4)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(truncateText(track.title, maxLength: 12))
-                        .font(.system(size: 13))
-                        .fontWeight(isCurrentTrack ? .semibold : .regular)
-                        .foregroundStyle(isCurrentTrack ? Color.accentColor : Color.primary)
-                    
-                    Text(track.artist)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
+                Text(truncateText(track.title, maxLength: 12))
+                    .font(.system(size: 13))
+                    .fontWeight(isCurrentTrack ? .semibold : .regular)
+                    .foregroundStyle(isCurrentTrack ? Color.accentColor : Color.primary)
                 
-                Spacer()
-                
-                if isPlaying {
-                    PlayingIndicatorView()
-                        .frame(width: 20, height: 20)
-                }
-                
-                Text(track.formattedDuration)
-                    .font(.system(size: 12))
+                Text(track.artist)
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                    .frame(width: 50, alignment: .trailing)
+            }
+            
+            Spacer()
+            
+            if isPlaying {
+                SpectrumView(spectrumData: spectrumData)
+                    .padding(.trailing, 10)
+            }
+            
+            Text(track.formattedDuration)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .frame(width: 50, alignment: .trailing)
             }
             .padding(.vertical, 4)
             .background(isCurrentTrack ? Color.accentColor.opacity(0.1) : Color.clear)
@@ -238,5 +240,49 @@ struct PlayingIndicatorView: View {
         .onAppear {
             animating = true
         }
+    }
+}
+
+struct SpectrumView: View {
+    let spectrumData: [Float]
+    
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(0..<min(spectrumData.count, 30), id: \.self) { index in
+                let value = spectrumData[index]
+                let height = CGFloat(value) * 40
+                
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(
+                                colors: [
+                                    Color(red: 0.2, green: 0.5, blue: 1.0),
+                                    Color(red: 0.6, green: 0.2, blue: 1.0),
+                                    Color(red: 1.0, green: 0.2, blue: 0.6)
+                                ]
+                            ),
+                            startPoint: .bottom,
+                            endPoint: .top
+                        )
+                    )
+                    .frame(
+                        width: 4,
+                        height: height
+                    )
+                    .shadow(color: Color.accentColor.opacity(0.5), radius: 2, x: 0, y: 2)
+                    .animation(
+                        Animation.easeOut(duration: 0.15).delay(Double(index) * 0.005),
+                        value: height
+                    )
+                    .background(
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.black.opacity(0.1))
+                            .frame(width: 4, height: 40)
+                    )
+            }
+        }
+        .frame(height: 40)
+        .padding(.vertical, 2)
     }
 }

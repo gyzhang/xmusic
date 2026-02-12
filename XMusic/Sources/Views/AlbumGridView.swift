@@ -188,7 +188,8 @@ struct AlbumDetailView: View {
                         TrackRowView(
                             track: track,
                             isPlaying: player.currentTrack?.id == track.id && player.isPlaying,
-                            isCurrentTrack: player.currentTrack?.id == track.id
+                            isCurrentTrack: player.currentTrack?.id == track.id,
+                            spectrumData: player.spectrumData
                         )
                         .contentShape(Rectangle())
                         .onTapGesture {
