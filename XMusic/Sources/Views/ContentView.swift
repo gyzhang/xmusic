@@ -1,4 +1,5 @@
 import SwiftUI
+import Cocoa
 
 struct ContentView: View {
     @StateObject private var player = AudioPlayer()
@@ -30,30 +31,18 @@ struct ContentView: View {
         }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Button(action: { showingAddFiles = true }) {
+                Button(action: { presentAddFilesPanel() }) {
                     Image(systemName: "plus")
                 }
                 .help("添加音乐文件")
                 
-                Button(action: { showingAddDirectory = true }) {
+                Button(action: { presentAddDirectoryPanel() }) {
                     Image(systemName: "folder.badge.plus")
                 }
                 .help("扫描文件夹")
             }
         }
-        .fileImporter(
-            isPresented: $showingAddFiles,
-            allowedContentTypes: [.audio],
-            allowsMultipleSelection: true
-        ) { result in
-            handleFileImport(result)
-        }
-        .fileImporter(
-            isPresented: $showingAddDirectory,
-            allowedContentTypes: [.directory]
-        ) { result in
-            handleDirectoryImport(result)
-        }
+
         .environmentObject(player)
         .environmentObject(library)
     }
@@ -73,6 +62,37 @@ struct ContentView: View {
             library.scanDirectory(url)
         case .failure(let error):
             print("Failed to import directory: \(error)")
+        }
+    }
+    
+    private func presentAddFilesPanel() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.audio]
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.title = "选择音乐文件"
+        
+        panel.begin { response in
+            if response == .OK {
+                let urls = panel.urls
+                library.addFiles(urls)
+            }
+        }
+    }
+    
+    private func presentAddDirectoryPanel() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.directory]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.title = "选择音乐文件夹"
+        
+        panel.begin { response in
+            if response == .OK,
+               let url = panel.urls.first {
+                library.scanDirectory(url)
+            }
         }
     }
 }
