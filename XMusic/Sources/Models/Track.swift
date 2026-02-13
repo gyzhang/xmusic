@@ -246,6 +246,20 @@ extension Track {
                         semaphore.signal()
                     }
                     semaphore.wait()
+                case "Authors": // 作者字段（英文 FLAC 文件）
+                    let semaphore = DispatchSemaphore(value: 0)
+                    Task {
+                        do {
+                            if let value = try await item.load(.stringValue) {
+                                artist = value
+                                print("Artist from 'Authors': \(value)")
+                            }
+                        } catch {
+                            print("Error loading artist from 'Authors' field: \(error)")
+                        }
+                        semaphore.signal()
+                    }
+                    semaphore.wait()
                 case "©alb": // 专辑
                     let semaphore = DispatchSemaphore(value: 0)
                     Task {
@@ -327,8 +341,15 @@ extension Track {
             if let match = fileName.range(of: artistSongRegex, options: .regularExpression) {
                 let matchString = String(fileName[match])
                 if let separatorIndex = matchString.firstIndex(of: "-") {
-                    let extractedArtist = String(matchString[..<separatorIndex]).trimmingCharacters(in: .whitespaces)
+                    var extractedArtist = String(matchString[..<separatorIndex]).trimmingCharacters(in: .whitespaces)
                     let extractedTitle = String(matchString[separatorIndex...]).dropFirst().trimmingCharacters(in: .whitespaces)
+                    
+                    // 去除艺术家名称中的前缀数字（如 "01. Richard Clayderman" 中的 "01."）
+                    let prefixNumberRegex = #"^\d+\.\s*"#
+                    if let prefixMatch = extractedArtist.range(of: prefixNumberRegex, options: .regularExpression) {
+                        extractedArtist = String(extractedArtist[prefixMatch.upperBound...]).trimmingCharacters(in: .whitespaces)
+                        print("Removed prefix from artist: \(extractedArtist)")
+                    }
                     
                     if artist == "Unknown Artist" {
                         artist = extractedArtist
