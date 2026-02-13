@@ -130,22 +130,36 @@ class MusicLibrary: ObservableObject {
                     tracks: [track]
                 )
             }
-            
-            if var artist = artistDict[track.artist] {
-                if !artist.albums.contains(where: { $0.title == track.album }) {
-                    artist.albums.append(albumDict[albumKey]!)
-                }
-                artistDict[track.artist] = artist
+        }
+        
+        // 构建艺人字典
+        for (_, album) in albumDict {
+            let artistName = album.artist
+            if var artist = artistDict[artistName] {
+                artist.albums.append(album)
+                artistDict[artistName] = artist
             } else {
-                artistDict[track.artist] = Artist(
-                    name: track.artist,
-                    albums: [albumDict[albumKey]!]
+                artistDict[artistName] = Artist(
+                    name: artistName,
+                    albums: [album]
                 )
             }
         }
         
         albums = Array(albumDict.values).sorted { $0.title < $1.title }
         artists = Array(artistDict.values).sorted { $0.name < $1.name }
+        
+        // 打印统计信息
+        print("Updated albums and artists:")
+        print("Total tracks: \(tracks.count)")
+        print("Total albums: \(albums.count)")
+        print("Total artists: \(artists.count)")
+        for artist in artists {
+            print("Artist: \(artist.name), Albums: \(artist.albums.count), Tracks: \(artist.tracks.count)")
+            for album in artist.albums {
+                print("  Album: \(album.title), Tracks: \(album.tracks.count)")
+            }
+        }
     }
     
     private func saveLibrary() {
