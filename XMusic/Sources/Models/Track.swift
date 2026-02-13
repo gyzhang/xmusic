@@ -260,6 +260,20 @@ extension Track {
                         semaphore.signal()
                     }
                     semaphore.wait()
+                case "Author": // 作者字段（英文 FLAC 文件）
+                    let semaphore = DispatchSemaphore(value: 0)
+                    Task {
+                        do {
+                            if let value = try await item.load(.stringValue) {
+                                artist = value
+                                print("Artist from 'Author': \(value)")
+                            }
+                        } catch {
+                            print("Error loading artist from 'Author' field: \(error)")
+                        }
+                        semaphore.signal()
+                    }
+                    semaphore.wait()
                 case "©alb": // 专辑
                     let semaphore = DispatchSemaphore(value: 0)
                     Task {
@@ -270,6 +284,34 @@ extension Track {
                             }
                         } catch {
                             print("Error loading album: \(error)")
+                        }
+                        semaphore.signal()
+                    }
+                    semaphore.wait()
+                case "Album": // 专辑字段（英文 FLAC 文件）
+                    let semaphore = DispatchSemaphore(value: 0)
+                    Task {
+                        do {
+                            if let value = try await item.load(.stringValue) {
+                                album = value
+                                print("Album from 'Album': \(value)")
+                            }
+                        } catch {
+                            print("Error loading album from 'Album' field: \(error)")
+                        }
+                        semaphore.signal()
+                    }
+                    semaphore.wait()
+                case "专辑": // 专辑字段（中文 FLAC 文件）
+                    let semaphore = DispatchSemaphore(value: 0)
+                    Task {
+                        do {
+                            if let value = try await item.load(.stringValue) {
+                                album = value
+                                print("Album from '专辑': \(value)")
+                            }
+                        } catch {
+                            print("Error loading album from '专辑' field: \(error)")
                         }
                         semaphore.signal()
                     }
@@ -315,9 +357,14 @@ extension Track {
                                     print("Artist from other field \(key): \(value)")
                                 }
                                 // 如果专辑仍然是默认值，尝试从其他字段中获取
-                                if album == "Unknown Album" && (key.contains("album") || key.contains("Album") || key.contains("专辑")) {
+                                if album == "Unknown Album" && (key.lowercased().contains("album") || key == "Album") {
                                     album = value
                                     print("Album from other field \(key): \(value)")
+                                }
+                                // 尝试直接匹配 Album 字段，不管大小写
+                                if key.lowercased() == "album" {
+                                    album = value
+                                    print("Album from direct match \(key): \(value)")
                                 }
                             }
                         } catch {
