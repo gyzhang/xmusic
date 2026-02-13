@@ -16,14 +16,21 @@ struct ContentAreaView: View {
                     library: library
                 )
             case .albums:
+                let filteredAlbums = searchText.isEmpty ? library.albums : library.albums.filter { album in
+                    album.title.lowercased().contains(searchText.lowercased()) ||
+                    album.artist.lowercased().contains(searchText.lowercased())
+                }
                 AlbumGridView(
-                    albums: library.albums,
+                    albums: filteredAlbums,
                     player: player,
                     library: library
                 )
             case .artists:
+                let filteredArtists = searchText.isEmpty ? library.artists : library.artists.filter { artist in
+                    artist.name.lowercased().contains(searchText.lowercased())
+                }
                 ArtistListView(
-                    artists: library.artists,
+                    artists: filteredArtists,
                     player: player,
                     library: library
                 )
@@ -52,6 +59,8 @@ struct TrackListView: View {
     @ObservedObject var library: MusicLibrary
     var title: String = "歌曲"
     var playlist: Playlist? = nil
+    @State private var selectionMode = false
+    @State private var selectedTracks: Set<Track.ID> = []
     
     var body: some View {
         VStack(spacing: 0) {
@@ -60,6 +69,43 @@ struct TrackListView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                 Spacer()
+                
+                if tracks.count > 0 {
+                    if selectionMode {
+                        HStack(spacing: 12) {
+                            Button("全选") {
+                                selectedTracks = Set(tracks.map { $0.id })
+                            }
+                            Button("取消选择") {
+                                selectedTracks.removeAll()
+                            }
+                            Button("删除所选") {
+                                if !selectedTracks.isEmpty {
+                                    let tracksToRemove = tracks.filter { selectedTracks.contains($0.id) }
+                                    for track in tracksToRemove {
+                                        if let currentPlaylist = playlist {
+                                            library.removeTrackFromPlaylist(track, playlist: currentPlaylist)
+                                        } else {
+                                            library.removeTrack(track)
+                                        }
+                                    }
+                                    selectedTracks.removeAll()
+                                    selectionMode = false
+                                }
+                            }
+                            .foregroundStyle(.red)
+                            Button("完成") {
+                                selectionMode = false
+                                selectedTracks.removeAll()
+                            }
+                        }
+                    } else {
+                        Button("选择") {
+                            selectionMode = true
+                        }
+                    }
+                }
+                
                 Text("\(tracks.count) 首歌曲")
                     .foregroundStyle(.secondary)
             }
@@ -68,58 +114,82 @@ struct TrackListView: View {
             Divider()
             
             List(tracks) { track in
-                TrackRowView(
-                    track: track,
-                    isPlaying: player.currentTrack?.id == track.id && player.isPlaying,
-                    isCurrentTrack: player.currentTrack?.id == track.id,
-                    spectrumData: player.spectrumData
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    player.load(track: track, playlist: tracks)
-                    player.play()
-                }
-                .contextMenu {
-                    Button("播放") {
-                        player.load(track: track, playlist: tracks)
-                        player.play()
+                HStack(spacing: 8) {
+                    if selectionMode {
+                        Button(action: {
+                            if selectedTracks.contains(track.id) {
+                                selectedTracks.remove(track.id)
+                            } else {
+                                selectedTracks.insert(track.id)
+                            }
+                        }) {
+                            Image(systemName: selectedTracks.contains(track.id) ? "checkmark.square.fill" : "square")
+                                .foregroundStyle(selectedTracks.contains(track.id) ? .blue : .gray)
+                        }
+                        .buttonStyle(.plain)
                     }
                     
-                    Menu("添加到播放列表") {
-                        if library.playlists.isEmpty {
-                            Button("暂无播放列表") {
-                                // 不做任何操作
+                    TrackRowView(
+                        track: track,
+                        isPlaying: player.currentTrack?.id == track.id && player.isPlaying,
+                        isCurrentTrack: player.currentTrack?.id == track.id,
+                        spectrumData: player.spectrumData
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if selectionMode {
+                            if selectedTracks.contains(track.id) {
+                                selectedTracks.remove(track.id)
+                            } else {
+                                selectedTracks.insert(track.id)
                             }
-                            .disabled(true)
                         } else {
-                            ForEach(library.playlists) { targetPlaylist in
-                                // 避免添加到当前播放列表
-                                if targetPlaylist.id != playlist?.id {
-                                    Button(action: {
-                                        library.addTrackToPlaylist(track, playlist: targetPlaylist)
-                                    }) {
-                                        Text(targetPlaylist.name)
+                            player.load(track: track, playlist: tracks)
+                            player.play()
+                        }
+                    }
+                    .contextMenu {
+                        Button("播放") {
+                            player.load(track: track, playlist: tracks)
+                            player.play()
+                        }
+                        
+                        Menu("添加到播放列表") {
+                            if library.playlists.isEmpty {
+                                Button("暂无播放列表") {
+                                    // 不做任何操作
+                                }
+                                .disabled(true)
+                            } else {
+                                ForEach(library.playlists) { targetPlaylist in
+                                    // 避免添加到当前播放列表
+                                    if targetPlaylist.id != playlist?.id {
+                                        Button(action: {
+                                            library.addTrackToPlaylist(track, playlist: targetPlaylist)
+                                        }) {
+                                            Text(targetPlaylist.name)
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    
-                    // 只在播放列表视图中显示从播放列表中移除选项
-                    if let currentPlaylist = playlist {
-                        Button("从播放列表中移除") {
-                            library.removeTrackFromPlaylist(track, playlist: currentPlaylist)
+                        
+                        // 只在播放列表视图中显示从播放列表中移除选项
+                        if let currentPlaylist = playlist {
+                            Button("从播放列表中移除") {
+                                library.removeTrackFromPlaylist(track, playlist: currentPlaylist)
+                            }
                         }
-                    }
-                    
-                    Divider()
-                    
-                    Button("在 Finder 中显示") {
-                        NSWorkspace.shared.activateFileViewerSelecting([track.url])
-                    }
-                    
-                    Button("从资料库删除") {
-                        library.removeTrack(track)
+                        
+                        Divider()
+                        
+                        Button("在 Finder 中显示") {
+                            NSWorkspace.shared.activateFileViewerSelecting([track.url])
+                        }
+                        
+                        Button("从资料库删除") {
+                            library.removeTrack(track)
+                        }
                     }
                 }
             }
