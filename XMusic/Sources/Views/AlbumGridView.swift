@@ -5,6 +5,8 @@ struct AlbumGridView: View {
     @ObservedObject var player: AudioPlayer
     @ObservedObject var library: MusicLibrary
     @State private var selectedAlbum: Album?
+    @State private var selectionMode = false
+    @State private var selectedAlbums: Set<Album.ID> = []
     
     let columns = [
         GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 20)
@@ -20,16 +22,73 @@ struct AlbumGridView: View {
                     Spacer()
                     Text("\(albums.count) 张专辑")
                         .foregroundStyle(.secondary)
+                    if albums.count > 0 {
+                        Button(selectionMode ? "完成" : "编辑") {
+                            if selectionMode {
+                                selectionMode = false
+                                selectedAlbums.removeAll()
+                            } else {
+                                selectionMode = true
+                            }
+                        }
+                        .padding(.leading, 16)
+                    }
                 }
                 .padding()
                 
                 Divider()
                 
+                if selectionMode {
+                    HStack {
+                        Button("全选") {
+                            selectedAlbums = Set(albums.map { $0.id })
+                        }
+                        Button("取消选择") {
+                            selectedAlbums.removeAll()
+                        }
+                        Button("删除所选") {
+                            if !selectedAlbums.isEmpty {
+                                let albumsToRemove = albums.filter { selectedAlbums.contains($0.id) }
+                                for album in albumsToRemove {
+                                    library.removeAlbum(album)
+                                }
+                                selectedAlbums.removeAll()
+                                selectionMode = false
+                            }
+                        }
+                        .foregroundStyle(.red)
+                        Spacer()
+                    }
+                    .padding()
+                    .background(Color.gray.opacity(0.05))
+                }
+                
                 LazyVGrid(columns: columns, spacing: 20) {
                     ForEach(albums) { album in
                         AlbumCardView(album: album)
-                            .onTapGesture {
-                                selectedAlbum = album
+                            .overlay {
+                                if selectionMode {
+                                    ZStack {
+                                        Color.black.opacity(0.3)
+                                        Image(systemName: selectedAlbums.contains(album.id) ? "checkmark.circle.fill" : "circle")
+                                            .font(.system(size: 24))
+                                            .foregroundStyle(selectedAlbums.contains(album.id) ? .blue : .white)
+                                            .position(x: 20, y: 20)
+                                    }
+                                    .onTapGesture {
+                                        if selectedAlbums.contains(album.id) {
+                                            selectedAlbums.remove(album.id)
+                                        } else {
+                                            selectedAlbums.insert(album.id)
+                                        }
+                                    }
+                                } else {
+                                    Color.clear
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            selectedAlbum = album
+                                        }
+                                }
                             }
                     }
                 }

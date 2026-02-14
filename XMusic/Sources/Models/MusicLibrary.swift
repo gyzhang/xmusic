@@ -113,6 +113,26 @@ class MusicLibrary: ObservableObject {
         }
     }
     
+    func removeAlbum(_ album: Album) {
+        // 从库中删除该专辑的所有歌曲
+        tracks.removeAll { track in
+            track.artist == album.artist && track.album == album.title
+        }
+        // 更新专辑和艺术家列表
+        updateAlbumsAndArtists()
+        saveLibrary()
+    }
+    
+    func removeArtist(_ artist: Artist) {
+        // 从库中删除该艺术家的所有歌曲
+        tracks.removeAll { track in
+            track.artist == artist.name
+        }
+        // 更新专辑和艺术家列表
+        updateAlbumsAndArtists()
+        saveLibrary()
+    }
+    
     func updateAlbumsAndArtists() {
         var albumDict: [String: Album] = [:]
         var artistDict: [String: Artist] = [:]

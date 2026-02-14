@@ -5,6 +5,8 @@ struct ArtistListView: View {
     @ObservedObject var player: AudioPlayer
     @ObservedObject var library: MusicLibrary
     @State private var selectedArtist: Artist?
+    @State private var selectionMode = false
+    @State private var selectedArtists: Set<Artist.ID> = []
     
     var body: some View {
         VStack(spacing: 0) {
@@ -15,17 +17,69 @@ struct ArtistListView: View {
                 Spacer()
                 Text("\(artists.count) 位艺人")
                     .foregroundStyle(.secondary)
+                if artists.count > 0 {
+                    Button(selectionMode ? "完成" : "编辑") {
+                        if selectionMode {
+                            selectionMode = false
+                            selectedArtists.removeAll()
+                        } else {
+                            selectionMode = true
+                        }
+                    }
+                    .padding(.leading, 16)
+                }
             }
             .padding()
             
             Divider()
             
+            if selectionMode {
+                HStack {
+                    Button("全选") {
+                        selectedArtists = Set(artists.map { $0.id })
+                    }
+                    Button("取消选择") {
+                        selectedArtists.removeAll()
+                    }
+                    Button("删除所选") {
+                        if !selectedArtists.isEmpty {
+                            let artistsToRemove = artists.filter { selectedArtists.contains($0.id) }
+                            for artist in artistsToRemove {
+                                library.removeArtist(artist)
+                            }
+                            selectedArtists.removeAll()
+                            selectionMode = false
+                        }
+                    }
+                    .foregroundStyle(.red)
+                    Spacer()
+                }
+                .padding()
+                .background(Color.gray.opacity(0.05))
+            }
+            
             List(artists) { artist in
-                ArtistRowView(artist: artist)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
+                HStack {
+                    if selectionMode {
+                        Image(systemName: selectedArtists.contains(artist.id) ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 20))
+                            .foregroundStyle(selectedArtists.contains(artist.id) ? .blue : .secondary)
+                            .padding(.trailing, 8)
+                    }
+                    ArtistRowView(artist: artist)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if selectionMode {
+                        if selectedArtists.contains(artist.id) {
+                            selectedArtists.remove(artist.id)
+                        } else {
+                            selectedArtists.insert(artist.id)
+                        }
+                    } else {
                         selectedArtist = artist
                     }
+                }
             }
             .listStyle(.plain)
         }
