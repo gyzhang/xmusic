@@ -53,8 +53,11 @@ class MusicLibrary: ObservableObject {
             }
             
             DispatchQueue.main.async {
-                self.tracks.append(contentsOf: newTracks)
-                self.tracks = Array(Set(self.tracks)).sorted { $0.title < $1.title }
+                // 合并并去重，保持原始顺序
+                let existingURLs = Set(self.tracks.map { $0.url })
+                let uniqueNewTracks = newTracks.filter { !existingURLs.contains($0.url) }
+                self.tracks.append(contentsOf: uniqueNewTracks)
+                self.tracks.sort { $0.title < $1.title }
                 self.updateAlbumsAndArtists()
                 self.isScanning = false
                 self.saveLibrary()
@@ -70,8 +73,11 @@ class MusicLibrary: ObservableObject {
             }
         }
         
-        tracks.append(contentsOf: newTracks)
-        tracks = Array(Set(tracks)).sorted { $0.title < $1.title }
+        // 合并并去重，保持原始顺序
+        let existingURLs = Set(tracks.map { $0.url })
+        let uniqueNewTracks = newTracks.filter { !existingURLs.contains($0.url) }
+        tracks.append(contentsOf: uniqueNewTracks)
+        tracks.sort { $0.title < $1.title }
         updateAlbumsAndArtists()
         saveLibrary()
     }
@@ -182,20 +188,24 @@ class MusicLibrary: ObservableObject {
         }
     }
     
+    // 播放列表数据结构，用于序列化和反序列化
+    private struct PlaylistData: Codable {
+        let id: UUID
+        let name: String
+        let trackIDs: [UUID]
+        let createdAt: Date
+    }
+    
     private func saveLibrary() {
         // 保存歌曲 URL
-        if let encodedTracks = try? JSONEncoder().encode(tracks.map { $0.url.absoluteString }) {
+        do {
+            let encodedTracks = try JSONEncoder().encode(tracks.map { $0.url.absoluteString })
             UserDefaults.standard.set(encodedTracks, forKey: "musicLibrary")
+        } catch {
+            print("Error saving tracks: \(error)")
         }
         
         // 保存播放列表
-        struct PlaylistData: Codable {
-            let id: UUID
-            let name: String
-            let trackIDs: [UUID]
-            let createdAt: Date
-        }
-        
         let playlistData = playlists.map { playlist in
             PlaylistData(
                 id: playlist.id,
@@ -205,39 +215,44 @@ class MusicLibrary: ObservableObject {
             )
         }
         
-        if let encodedPlaylists = try? JSONEncoder().encode(playlistData) {
+        do {
+            let encodedPlaylists = try JSONEncoder().encode(playlistData)
             UserDefaults.standard.set(encodedPlaylists, forKey: "musicPlaylists")
+        } catch {
+            print("Error saving playlists: \(error)")
         }
     }
     
     private func loadLibrary() {
         // 加载歌曲
-        guard let data = UserDefaults.standard.data(forKey: "musicLibrary"),
-              let urls = try? JSONDecoder().decode([String].self, from: data) else {
-            return
-        }
-        
-        var loadedTracks: [Track] = []
-        for urlString in urls {
-            if let url = URL(string: urlString),
-               let track = Track.load(from: url) {
-                loadedTracks.append(track)
+        do {
+            guard let data = UserDefaults.standard.data(forKey: "musicLibrary") else {
+                return
             }
+            
+            let urls = try JSONDecoder().decode([String].self, from: data)
+            
+            var loadedTracks: [Track] = []
+            for urlString in urls {
+                if let url = URL(string: urlString),
+                   let track = Track.load(from: url) {
+                    loadedTracks.append(track)
+                }
+            }
+            
+            tracks = loadedTracks
+            updateAlbumsAndArtists()
+        } catch {
+            print("Error loading tracks: \(error)")
         }
-        
-        tracks = loadedTracks
-        updateAlbumsAndArtists()
         
         // 加载播放列表
-        struct PlaylistData: Codable {
-            let id: UUID
-            let name: String
-            let trackIDs: [UUID]
-            let createdAt: Date
-        }
-        
-        if let playlistData = UserDefaults.standard.data(forKey: "musicPlaylists"),
-           let decodedPlaylists = try? JSONDecoder().decode([PlaylistData].self, from: playlistData) {
+        do {
+            guard let playlistData = UserDefaults.standard.data(forKey: "musicPlaylists") else {
+                return
+            }
+            
+            let decodedPlaylists = try JSONDecoder().decode([PlaylistData].self, from: playlistData)
             
             var loadedPlaylists: [Playlist] = []
             for playlistInfo in decodedPlaylists {
@@ -251,6 +266,8 @@ class MusicLibrary: ObservableObject {
             }
             
             playlists = loadedPlaylists
+        } catch {
+            print("Error loading playlists: \(error)")
         }
     }
     

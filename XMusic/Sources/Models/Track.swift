@@ -92,136 +92,51 @@ extension Track {
             do {
                 // 加载 commonMetadata
                 metadata = try await asset.load(.commonMetadata)
-                
-                // 打印加载的元数据数量
-                print("Loaded \(metadata.count) metadata items for file: \(url.lastPathComponent)")
             } catch {
-                print("Error loading metadata: \(error)")
+                // 静默处理错误
             }
             metadataSemaphore.signal()
         }
         metadataSemaphore.wait()
         
         // 处理 metadata
-        print("Processing metadata for file: \(url.lastPathComponent)")
-        print("Total metadata items: \(metadata.count)")
-        
-        for (index, item) in metadata.enumerated() {
-            // 打印每个元数据项的详细信息
-            print("\nMetadata item \(index):")
-            if let commonKey = item.commonKey?.rawValue {
-                print("  Common key: \(commonKey)")
-            }
-            if let key = item.key {
-                print("  Key: \(key)")
-                print("  Key type: \(type(of: key))")
-                if let keyStr = key as? String {
-                    print("  Key as string: \(keyStr)")
-                    print("  Key lowercase: \(keyStr.lowercased())")
-                }
-            }
-            
-            // 尝试读取值
-            let valueSemaphore = DispatchSemaphore(value: 0)
-            Task {
-                do {
-                    if let value = try await item.load(.stringValue) {
-                        print("  Value: \(value)")
-                    }
-                } catch {
-                    print("  Error loading value: \(error)")
-                }
-                valueSemaphore.signal()
-            }
-            valueSemaphore.wait()
-            
+        for item in metadata {
             // 优先使用 commonKey
             if let commonKey = item.commonKey?.rawValue {
                 switch commonKey {
                 case "title":
-                    let semaphore = DispatchSemaphore(value: 0)
-                    Task {
-                        do {
-                            if let value = try await item.load(.stringValue) {
-                                title = value
-                                print("  Title from commonKey: \(value)")
-                            }
-                        } catch {
-                            print("  Error loading title: \(error)")
-                        }
-                        semaphore.signal()
+                    loadMetadataValue(item) { value in
+                        title = value
                     }
-                    semaphore.wait()
                 case "artist":
-                    let semaphore = DispatchSemaphore(value: 0)
-                    Task {
-                        do {
-                            if let value = try await item.load(.stringValue) {
-                                artist = value
-                                print("  Artist from commonKey: \(value)")
-                            }
-                        } catch {
-                            print("  Error loading artist: \(error)")
-                        }
-                        semaphore.signal()
+                    loadMetadataValue(item) { value in
+                        artist = value
                     }
-                    semaphore.wait()
                 case "albumName":
-                    let semaphore = DispatchSemaphore(value: 0)
-                    Task {
-                        do {
-                            if let value = try await item.load(.stringValue) {
-                                album = value
-                                print("  Album from commonKey: \(value)")
-                            }
-                        } catch {
-                            print("  Error loading album: \(error)")
-                        }
-                        semaphore.signal()
+                    loadMetadataValue(item) { value in
+                        album = value
                     }
-                    semaphore.wait()
                 case "artwork":
                     let semaphore = DispatchSemaphore(value: 0)
                     Task {
                         do {
                             if let value = try await item.load(.dataValue) {
                                 artwork = value
-                                print("  Artwork from commonKey: \(value.count) bytes")
                             }
                         } catch {
-                            print("  Error loading artwork: \(error)")
+                            // 静默处理错误
                         }
                         semaphore.signal()
                     }
                     semaphore.wait()
                 case "creationDate":
-                    let semaphore = DispatchSemaphore(value: 0)
-                    Task {
-                        do {
-                            if let value = try await item.load(.stringValue) {
-                                year = value
-                                print("  Year from commonKey: \(value)")
-                            }
-                        } catch {
-                            print("  Error loading year: \(error)")
-                        }
-                        semaphore.signal()
+                    loadMetadataValue(item) { value in
+                        year = value
                     }
-                    semaphore.wait()
                 case "type":
-                    let semaphore = DispatchSemaphore(value: 0)
-                    Task {
-                        do {
-                            if let value = try await item.load(.stringValue) {
-                                genre = value
-                                print("  Genre from commonKey: \(value)")
-                            }
-                        } catch {
-                            print("  Error loading genre: \(error)")
-                        }
-                        semaphore.signal()
+                    loadMetadataValue(item) { value in
+                        genre = value
                     }
-                    semaphore.wait()
                 default:
                     break
                 }
@@ -230,49 +145,12 @@ extension Track {
                 let semaphore = DispatchSemaphore(value: 0)
                 Task {
                     do {
-                        if let value = try await item.load(.stringValue) {
-                            print("  Processing non-commonKey item with value: \(value)")
-                            
-                            // 尝试匹配标题
-                            if let key = item.key as? String {
-                                if key.lowercased().contains("title") || key.lowercased().contains("name") || key == "©nam" {
-                                    title = value
-                                    print("  Title from non-commonKey: \(value)")
-                                }
-                                
-                                // 尝试匹配艺术家
-                                if key.lowercased().contains("artist") || key.lowercased().contains("author") || key == "©art" || key == "作者" || key == "Authors" || key == "Author" {
-                                    artist = value
-                                    print("  Artist from non-commonKey: \(value)")
-                                }
-                                
-                                // 尝试匹配专辑
-                                if key.lowercased().contains("album") || key == "©alb" || key == "Album" || key == "专辑" {
-                                    album = value
-                                    print("  Album from non-commonKey: \(value)")
-                                }
-                                // 尝试直接匹配所有可能的专辑字段，不管大小写
-                                let lowercaseKey = key.lowercased()
-                                if lowercaseKey == "album" || lowercaseKey == "©alb" || lowercaseKey == "专辑" {
-                                    album = value
-                                    print("  Album from direct match: \(value)")
-                                }
-                                
-                                // 尝试匹配年份
-                                if key.lowercased().contains("year") || key.lowercased().contains("date") || key == "©day" {
-                                    year = value
-                                    print("  Year from non-commonKey: \(value)")
-                                }
-                                
-                                // 尝试匹配流派
-                                if key.lowercased().contains("genre") || key == "©gen" {
-                                    genre = value
-                                    print("  Genre from non-commonKey: \(value)")
-                                }
-                            }
+                        if let value = try await item.load(.stringValue),
+                           let key = item.key as? String {
+                            processMetadataKey(key, value: value, &title, &artist, &album, &year, &genre)
                         }
                     } catch {
-                        print("  Error processing non-commonKey item: \(error)")
+                        // 静默处理错误
                     }
                     semaphore.signal()
                 }
@@ -280,72 +158,15 @@ extension Track {
             }
         }
         
-        // 打印当前的艺术家和专辑信息
-        print("\nCurrent metadata status:")
-        print("  Title: \(title)")
-        print("  Artist: \(artist)")
-        print("  Album: \(album)")
-        print("  Genre: \(genre ?? "Unknown")")
-        print("  Year: \(year ?? "Unknown")")
-        
         // 如果从元数据中没有获取到艺术家信息，尝试从文件名中提取
         if artist == "Unknown Artist" {
-            let fileName = url.deletingPathExtension().lastPathComponent
-            print("Trying to extract artist from filename: \(fileName)")
-            
-            // 尝试匹配 "艺术家 - 歌曲" 格式
-            let artistSongRegex = #"(.+?)\s*-\s*(.+)"#
-            if let match = fileName.range(of: artistSongRegex, options: .regularExpression) {
-                let matchString = String(fileName[match])
-                if let separatorIndex = matchString.firstIndex(of: "-") {
-                    var extractedArtist = String(matchString[..<separatorIndex]).trimmingCharacters(in: .whitespaces)
-                    
-                    // 去除艺术家名称中的前缀数字（如 "01. Richard Clayderman" 中的 "01."）
-                    let prefixNumberRegex = #"^\d+\.\s*"#
-                    if let prefixMatch = extractedArtist.range(of: prefixNumberRegex, options: .regularExpression) {
-                        extractedArtist = String(extractedArtist[prefixMatch.upperBound...]).trimmingCharacters(in: .whitespaces)
-                        print("Removed prefix from artist: \(extractedArtist)")
-                    }
-                    
-                    artist = extractedArtist
-                    print("Artist extracted from filename: \(extractedArtist)")
-                }
-            }
+            extractArtistFromFilename(url, &artist)
         }
         
         // 如果从元数据中没有获取到专辑信息，尝试从文件路径中提取
         if album == "Unknown Album" {
-            print("Trying to extract album from file path")
-            
-            // 获取文件路径的目录结构
-            let currentDir = url.deletingLastPathComponent()
-            let currentDirName = currentDir.lastPathComponent
-            let parentDir = currentDir.deletingLastPathComponent().lastPathComponent
-            let grandparentDir = currentDir.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent
-            
-            print("Directory structure:")
-            print("  Current directory: \(currentDirName)")
-            print("  Parent directory: \(parentDir)")
-            print("  Grandparent directory: \(grandparentDir)")
-            
-            // 优先尝试使用上一级目录作为专辑名称（如果不是 CD 目录）
-            if !parentDir.isEmpty && !parentDir.hasPrefix("CD ") {
-                album = parentDir
-                print("Album extracted from parent directory: \(parentDir)")
-            } else if !grandparentDir.isEmpty {
-                // 如果上一级是 CD 目录，使用再上一级目录
-                album = grandparentDir
-                print("Album extracted from grandparent directory: \(grandparentDir)")
-            } else if !currentDirName.isEmpty {
-                // 最后使用当前目录
-                album = currentDirName
-                print("Album extracted from current directory: \(currentDirName)")
-            }
+            extractAlbumFromPath(url, &album)
         }
-        
-        // 打印最终的艺术家和专辑信息
-        print("Final artist: \(artist)")
-        print("Final album: \(album)")
         
         // 如果没有找到内置封面，尝试从文件系统加载封面
         if artwork == nil {
@@ -360,7 +181,7 @@ extension Track {
                 let time = try await asset.load(.duration)
                 duration = time.seconds.isFinite ? time.seconds : 0
             } catch {
-                print("Error loading duration: \(error)")
+                // 静默处理错误
             }
             durationSemaphore.signal()
         }
@@ -377,6 +198,94 @@ extension Track {
             genre: genre,
             trackNumber: trackNumber
         )
+    }
+    
+    // 加载元数据值
+    private static func loadMetadataValue(_ item: AVMetadataItem, completion: @escaping (String) -> Void) {
+        let semaphore = DispatchSemaphore(value: 0)
+        Task {
+            do {
+                if let value = try await item.load(.stringValue) {
+                    completion(value)
+                }
+            } catch {
+                // 静默处理错误
+            }
+            semaphore.signal()
+        }
+        semaphore.wait()
+    }
+    
+    // 处理元数据键
+    private static func processMetadataKey(_ key: String, value: String, _ title: inout String, _ artist: inout String, _ album: inout String, _ year: inout String?, _ genre: inout String?) {
+        let lowercaseKey = key.lowercased()
+        
+        // 尝试匹配标题
+        if lowercaseKey.contains("title") || lowercaseKey.contains("name") || key == "©nam" {
+            title = value
+        }
+        
+        // 尝试匹配艺术家
+        if lowercaseKey.contains("artist") || lowercaseKey.contains("author") || key == "©art" || key == "作者" || key == "Authors" || key == "Author" {
+            artist = value
+        }
+        
+        // 尝试匹配专辑
+        if lowercaseKey.contains("album") || key == "©alb" || key == "Album" || key == "专辑" {
+            album = value
+        }
+        
+        // 尝试匹配年份
+        if lowercaseKey.contains("year") || lowercaseKey.contains("date") || key == "©day" {
+            year = value
+        }
+        
+        // 尝试匹配流派
+        if lowercaseKey.contains("genre") || key == "©gen" {
+            genre = value
+        }
+    }
+    
+    // 从文件名提取艺术家信息
+    private static func extractArtistFromFilename(_ url: URL, _ artist: inout String) {
+        let fileName = url.deletingPathExtension().lastPathComponent
+        
+        // 尝试匹配 "艺术家 - 歌曲" 格式
+        let artistSongRegex = #"(.+?)\s*-\s*(.+)"#
+        if let match = fileName.range(of: artistSongRegex, options: .regularExpression) {
+            let matchString = String(fileName[match])
+            if let separatorIndex = matchString.firstIndex(of: "-") {
+                var extractedArtist = String(matchString[..<separatorIndex]).trimmingCharacters(in: .whitespaces)
+                
+                // 去除艺术家名称中的前缀数字（如 "01. Richard Clayderman" 中的 "01."）
+                let prefixNumberRegex = #"^\d+\.\s*"#
+                if let prefixMatch = extractedArtist.range(of: prefixNumberRegex, options: .regularExpression) {
+                    extractedArtist = String(extractedArtist[prefixMatch.upperBound...]).trimmingCharacters(in: .whitespaces)
+                }
+                
+                artist = extractedArtist
+            }
+        }
+    }
+    
+    // 从文件路径提取专辑信息
+    private static func extractAlbumFromPath(_ url: URL, _ album: inout String) {
+        // 获取文件路径的目录结构
+        let currentDir = url.deletingLastPathComponent()
+        let currentDirName = currentDir.lastPathComponent
+        let parentDir = currentDir.deletingLastPathComponent().lastPathComponent
+        let grandparentDir = currentDir.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent
+        
+        // 优先尝试使用上一级目录作为专辑名称（如果不是 CD 目录）
+        if !parentDir.isEmpty && !parentDir.hasPrefix("CD ") {
+            album = parentDir
+        } else if !grandparentDir.isEmpty {
+            // 如果上一级是 CD 目录，使用再上一级目录
+            album = grandparentDir
+        } else if !currentDirName.isEmpty {
+            // 最后使用当前目录
+            album = currentDirName
+        }
     }
     
     // 在当前目录及上级目录查找封面图片
