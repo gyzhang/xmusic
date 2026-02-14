@@ -61,14 +61,26 @@ struct ContentAreaView: View {
                     selectedTab: $selectedTab
                 )
             case .playlist(let playlist):
-                // 显示播放列表中的歌曲
-                TrackListView(
-                    tracks: playlist.tracks,
-                    player: player,
-                    library: library,
-                    title: playlist.name,
-                    playlist: playlist
-                )
+                // 从 library 中获取最新的播放列表数据
+                if let updatedPlaylist = library.playlists.first(where: { $0.id == playlist.id }) {
+                    // 显示播放列表中的歌曲
+                    TrackListView(
+                        tracks: updatedPlaylist.tracks,
+                        player: player,
+                        library: library,
+                        title: updatedPlaylist.name,
+                        playlist: updatedPlaylist
+                    )
+                } else {
+                    // 如果播放列表不存在，显示空的歌曲列表
+                    TrackListView(
+                        tracks: [],
+                        player: player,
+                        library: library,
+                        title: playlist.name,
+                        playlist: playlist
+                    )
+                }
             }
         }
     }
