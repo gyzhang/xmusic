@@ -1,39 +1,69 @@
+//
+//  AudioPlayer.swift
+//  XMusic
+//
+//  音频播放器
+//
+
 import AVFoundation
 import Combine
 import Accelerate
 
+/// 音频播放器
+/// 负责音频播放控制、播放进度管理、频谱分析等功能
 class AudioPlayer: ObservableObject {
+    /// 是否正在播放
     @Published var isPlaying = false
+    /// 当前播放时间（秒）
     @Published var currentTime: TimeInterval = 0
+    /// 音频总时长（秒）
     @Published var duration: TimeInterval = 0
+    /// 音量（0.0-1.0）
     @Published var volume: Double = 0.8
+    /// 当前播放的歌曲
     @Published var currentTrack: Track?
+    /// 播放进度（0.0-1.0）
     @Published var playbackProgress: Double = 0
+    /// 频谱数据（用于可视化）
     @Published var spectrumData: [Float] = Array(repeating: 0.0, count: 30)
     
+    /// 音频播放器
     private var player: AVAudioPlayer?
+    /// 进度更新定时器
     private var timer: Timer?
+    /// 播放列表
     private var playlist: [Track] = []
+    /// 当前播放索引
     private var currentIndex: Int = 0
+    /// 音频引擎（用于频谱分析）
     private var audioEngine: AVAudioEngine?
+    /// 音频混音节点
     private var audioMixerNode: AVAudioMixerNode?
+    /// 频谱分析定时器
     private var spectrumTimer: Timer?
+    /// 音频播放器节点
     private var audioPlayerNode: AVAudioPlayerNode?
+    /// 音频文件
     private var audioFile: AVAudioFile?
+    /// 音频缓冲区
     private var audioBuffer: AVAudioPCMBuffer?
     
+    /// 是否可以播放下一首
     var canGoNext: Bool {
         currentIndex < playlist.count - 1
     }
     
+    /// 是否可以播放上一首
     var canGoPrevious: Bool {
         currentIndex > 0
     }
     
+    /// 初始化方法
     init() {
         setupAudioSession()
     }
     
+    /// 设置音频会话
     private func setupAudioSession() {
         #if os(iOS)
         do {
@@ -45,6 +75,10 @@ class AudioPlayer: ObservableObject {
         #endif
     }
     
+    /// 加载歌曲
+    /// - Parameters:
+    ///   - track: 要加载的歌曲
+    ///   - playlist: 播放列表（默认为空）
     func load(track: Track, playlist: [Track] = []) {
         self.playlist = playlist.isEmpty ? [track] : playlist
         self.currentIndex = self.playlist.firstIndex(where: { $0.id == track.id }) ?? 0
@@ -69,16 +103,20 @@ class AudioPlayer: ObservableObject {
         }
     }
     
+    /// 设置音频引擎
+    /// - Parameter track: 当前播放的歌曲
     private func setupAudioEngine(for track: Track) {
         // 简化实现，直接启动频谱分析（使用模拟数据）
         startSpectrumAnalysis()
     }
     
+    /// 停止音频引擎
     private func stopAudioEngine() {
         spectrumTimer?.invalidate()
         spectrumData = Array(repeating: 0.0, count: 30)
     }
     
+    /// 开始频谱分析
     private func startSpectrumAnalysis() {
         // 开始定时器更新频谱数据
         spectrumTimer?.invalidate()
@@ -90,6 +128,7 @@ class AudioPlayer: ObservableObject {
         }
     }
     
+    /// 生成模拟频谱数据
     private func generateSpectrumData() {
         var magnitudes = [Float](repeating: 0.0, count: spectrumData.count)
         
@@ -144,18 +183,21 @@ class AudioPlayer: ObservableObject {
         spectrumData = magnitudes
     }
     
+    /// 播放音频
     func play() {
         player?.play()
         isPlaying = true
         startProgressTimer()
     }
     
+    /// 暂停音频
     func pause() {
         player?.pause()
         isPlaying = false
         stopProgressTimer()
     }
     
+    /// 切换播放/暂停状态
     func togglePlayPause() {
         if isPlaying {
             pause()
@@ -164,6 +206,7 @@ class AudioPlayer: ObservableObject {
         }
     }
     
+    /// 停止音频
     func stop() {
         player?.stop()
         player?.currentTime = 0
@@ -175,6 +218,7 @@ class AudioPlayer: ObservableObject {
         stopAudioEngine()
     }
     
+    /// 播放下一首
     func nextTrack() {
         guard canGoNext else { return }
         currentIndex += 1
@@ -183,6 +227,7 @@ class AudioPlayer: ObservableObject {
         play()
     }
     
+    /// 播放上一首
     func previousTrack() {
         guard canGoPrevious else { return }
         currentIndex -= 1
@@ -191,6 +236,8 @@ class AudioPlayer: ObservableObject {
         play()
     }
     
+    /// 跳转到指定进度
+    /// - Parameter progress: 进度（0.0-1.0）
     func seek(to progress: Double) {
         guard let player = player else { return }
         let newTime = progress * (player.duration)
@@ -199,11 +246,14 @@ class AudioPlayer: ObservableObject {
         playbackProgress = progress
     }
     
+    /// 设置音量
+    /// - Parameter newVolume: 音量（0.0-1.0）
     func setVolume(_ newVolume: Double) {
         volume = newVolume
         player?.volume = Float(newVolume)
     }
     
+    /// 开始进度更新定时器
     private func startProgressTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
@@ -211,9 +261,11 @@ class AudioPlayer: ObservableObject {
             self.currentTime = player.currentTime
             self.playbackProgress = self.duration > 0 ? self.currentTime / self.duration : 0
             
+            // 检查是否播放完成
             if !player.isPlaying && self.isPlaying {
                 self.isPlaying = false
                 self.stopProgressTimer()
+                // 自动播放下一首
                 if self.canGoNext {
                     self.nextTrack()
                 }
@@ -221,13 +273,18 @@ class AudioPlayer: ObservableObject {
         }
     }
     
+    /// 停止进度更新定时器
     private func stopProgressTimer() {
         timer?.invalidate()
         timer = nil
     }
 }
 
+/// AudioPlayer 扩展
+
 extension AudioPlayer {
+    /// 获取支持的音频文件扩展名
+    /// - Returns: 支持的音频文件扩展名列表
     static func supportedAudioExtensions() -> [String] {
         return ["mp3", "wav", "wave", "flac", "m4a", "aac", "aiff", "au", "snd", "sd2", "caf"]
     }

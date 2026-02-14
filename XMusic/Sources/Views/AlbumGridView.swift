@@ -1,13 +1,21 @@
 import SwiftUI
 
+/// 专辑网格视图 - 显示所有专辑的网格布局
 struct AlbumGridView: View {
+    /// 专辑数组
     let albums: [Album]
+    /// 音频播放器实例
     @ObservedObject var player: AudioPlayer
+    /// 音乐库实例
     @ObservedObject var library: MusicLibrary
+    /// 当前选中的专辑
     @State private var selectedAlbum: Album?
+    /// 是否处于选择模式
     @State private var selectionMode = false
+    /// 选中的专辑ID集合
     @State private var selectedAlbums: Set<Album.ID> = []
     
+    /// 网格列配置
     let columns = [
         GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 20)
     ]
@@ -15,6 +23,7 @@ struct AlbumGridView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                // 标题栏
                 HStack {
                     Text("专辑")
                         .font(.largeTitle)
@@ -38,6 +47,7 @@ struct AlbumGridView: View {
                 
                 Divider()
                 
+                // 选择模式工具栏
                 if selectionMode {
                     HStack {
                         Button("全选") {
@@ -63,6 +73,7 @@ struct AlbumGridView: View {
                     .background(Color.gray.opacity(0.05))
                 }
                 
+                // 专辑网格
                 LazyVGrid(columns: columns, spacing: 20) {
                     ForEach(albums) { album in
                         AlbumCardView(album: album)
@@ -101,18 +112,23 @@ struct AlbumGridView: View {
     }
 }
 
+/// 专辑卡片视图 - 显示单个专辑的卡片
 struct AlbumCardView: View {
+    /// 专辑数据
     let album: Album
+    /// 是否悬停状态
     @State private var isHovering = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // 专辑封面
             ZStack {
                 if let artwork = album.artwork, let nsImage = NSImage(data: artwork) {
                     Image(nsImage: nsImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                 } else {
+                    // 无封面时的默认显示
                     ZStack {
                         RoundedRectangle(cornerRadius: 8)
                             .fill(
@@ -141,6 +157,7 @@ struct AlbumCardView: View {
                 isHovering = hovering
             }
             
+            // 专辑信息
             VStack(alignment: .leading, spacing: 2) {
                 Text(album.title)
                     .font(.system(size: 13, weight: .semibold))
@@ -159,15 +176,21 @@ struct AlbumCardView: View {
     }
 }
 
+/// 专辑详情视图 - 显示专辑的详细信息和曲目列表
 struct AlbumDetailView: View {
+    /// 专辑数据
     let album: Album
+    /// 音频播放器实例
     @ObservedObject var player: AudioPlayer
+    /// 音乐库实例
     @ObservedObject var library: MusicLibrary
+    /// 关闭视图的环境变量
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationStack {
             List {
+                // 专辑封面和基本信息
                 HStack(spacing: 20) {
                     ZStack {
                         if let artwork = album.artwork, let nsImage = NSImage(data: artwork) {
@@ -175,6 +198,7 @@ struct AlbumDetailView: View {
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                         } else {
+                            // 无封面时的默认显示
                             ZStack {
                                 RoundedRectangle(cornerRadius: 12)
                                     .fill(
@@ -198,6 +222,7 @@ struct AlbumDetailView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 10)
                     
+                    // 专辑信息
                     VStack(alignment: .leading, spacing: 8) {
                         Text(album.title)
                             .font(.title)
@@ -207,6 +232,7 @@ struct AlbumDetailView: View {
                             .font(.title3)
                             .foregroundStyle(.secondary)
                         
+                        // 专辑统计信息
                         HStack(spacing: 16) {
                             Label("\(album.tracks.count) 首歌曲", systemImage: "music.note")
                             Label(album.formattedDuration, systemImage: "clock")
@@ -215,6 +241,7 @@ struct AlbumDetailView: View {
                         .foregroundStyle(.secondary)
                         .padding(.top, 8)
                         
+                        // 播放按钮
                         HStack(spacing: 12) {
                             Button("播放全部") {
                                 if let firstTrack = album.tracks.first {
@@ -242,6 +269,7 @@ struct AlbumDetailView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
                 
+                // 曲目列表
                 Section {
                     ForEach(album.tracks) { track in
                         TrackRowView(

@@ -1,8 +1,12 @@
 import SwiftUI
 
+/// 当前播放视图 - 显示正在播放的歌曲信息和控制界面
 struct NowPlayingView: View {
+    /// 音频播放器实例
     @ObservedObject var player: AudioPlayer
+    /// 音乐库实例
     @ObservedObject var library: MusicLibrary
+    /// 是否显示播放列表
     @State private var showingPlaylist = false
     
     var body: some View {
@@ -58,8 +62,11 @@ struct NowPlayingView: View {
     }
 }
 
+/// 专辑封面视图 - 显示专辑封面图片
 struct AlbumArtworkView: View {
+    /// 歌曲轨道
     let track: Track?
+    /// 是否悬停状态
     @State private var isHovering = false
     
     var body: some View {
@@ -125,7 +132,7 @@ struct AlbumArtworkView: View {
         )
     }
     
-    // 加载与歌曲同名的本地图片文件
+    /// 加载与歌曲同名的本地图片文件
     private func loadLocalCoverImage(for track: Track) -> Image? {
         // 获取歌曲文件所在目录
         let directory = track.url.deletingLastPathComponent()
@@ -158,9 +165,13 @@ struct AlbumArtworkView: View {
     }
 }
 
+/// 进度条视图 - 显示歌曲播放进度
 struct ProgressBarView: View {
+    /// 音频播放器实例
     @ObservedObject var player: AudioPlayer
+    /// 是否正在拖动
     @State private var isDragging = false
+    /// 拖动进度
     @State private var dragProgress: Double = 0
     
     var body: some View {
@@ -217,6 +228,7 @@ struct ProgressBarView: View {
         }
     }
     
+    /// 格式化时间为分:秒格式
     private func formatTime(_ time: TimeInterval) -> String {
         guard time.isFinite && time >= 0 else { return "0:00" }
         let minutes = Int(time) / 60
@@ -225,7 +237,9 @@ struct ProgressBarView: View {
     }
 }
 
+/// 播放控制视图 - 显示播放/暂停等控制按钮
 struct PlaybackControlsView: View {
+    /// 音频播放器实例
     @ObservedObject var player: AudioPlayer
     
     var body: some View {
@@ -264,7 +278,9 @@ struct PlaybackControlsView: View {
     }
 }
 
+/// 音量控制视图 - 显示音量调节滑块
 struct VolumeControlView: View {
+    /// 音频播放器实例
     @ObservedObject var player: AudioPlayer
     
     var body: some View {
@@ -296,6 +312,7 @@ struct VolumeControlView: View {
         }
     }
     
+    /// 根据音量大小返回对应的音量图标
     private var volumeIcon: String {
         if player.volume == 0 {
             return "speaker.slash.fill"

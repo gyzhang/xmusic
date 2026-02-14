@@ -1,46 +1,67 @@
+//
+//  ContentAreaView.swift
+//  XMusic
+//
+//  内容区域视图
+//
+
 import SwiftUI
 
+/// 内容区域视图
+/// 根据选中的侧边栏项显示不同的内容
 struct ContentAreaView: View {
+    /// 选中的侧边栏项
     @Binding var selectedTab: SidebarItem
+    /// 音乐库
     @ObservedObject var library: MusicLibrary
+    /// 音频播放器
     @ObservedObject var player: AudioPlayer
+    /// 搜索文本
     let searchText: String
     
     var body: some View {
         Group {
+            // 根据选中的侧边栏项显示不同的内容
             switch selectedTab {
             case .library:
+                // 显示歌曲列表
                 TrackListView(
                     tracks: searchText.isEmpty ? library.tracks : library.search(query: searchText),
                     player: player,
                     library: library
                 )
             case .albums:
+                // 过滤专辑
                 let filteredAlbums = searchText.isEmpty ? library.albums : library.albums.filter { album in
                     album.title.lowercased().contains(searchText.lowercased()) ||
                     album.artist.lowercased().contains(searchText.lowercased())
                 }
+                // 显示专辑网格
                 AlbumGridView(
                     albums: filteredAlbums,
                     player: player,
                     library: library
                 )
             case .artists:
+                // 过滤艺术家
                 let filteredArtists = searchText.isEmpty ? library.artists : library.artists.filter { artist in
                     artist.name.lowercased().contains(searchText.lowercased())
                 }
+                // 显示艺术家列表
                 ArtistListView(
                     artists: filteredArtists,
                     player: player,
                     library: library
                 )
             case .playlists:
+                // 显示播放列表网格
                 PlaylistGridView(
                     playlists: library.playlists,
                     library: library,
                     selectedTab: $selectedTab
                 )
             case .playlist(let playlist):
+                // 显示播放列表中的歌曲
                 TrackListView(
                     tracks: playlist.tracks,
                     player: player,
@@ -53,17 +74,27 @@ struct ContentAreaView: View {
     }
 }
 
+/// 歌曲列表视图
+/// 显示歌曲列表，支持选择、删除等操作
 struct TrackListView: View {
+    /// 歌曲列表
     let tracks: [Track]
+    /// 音频播放器
     @ObservedObject var player: AudioPlayer
+    /// 音乐库
     @ObservedObject var library: MusicLibrary
+    /// 标题
     var title: String = "歌曲"
+    /// 播放列表（可选）
     var playlist: Playlist? = nil
+    /// 是否进入选择模式
     @State private var selectionMode = false
+    /// 选中的歌曲 ID 集合
     @State private var selectedTracks: Set<Track.ID> = []
     
     var body: some View {
         VStack(spacing: 0) {
+            // 标题栏
             HStack {
                 Text(title)
                     .font(.largeTitle)
@@ -72,6 +103,7 @@ struct TrackListView: View {
                 
                 if tracks.count > 0 {
                     if selectionMode {
+                        // 选择模式下的按钮
                         HStack(spacing: 12) {
                             Button("全选") {
                                 selectedTracks = Set(tracks.map { $0.id })
@@ -100,12 +132,14 @@ struct TrackListView: View {
                             }
                         }
                     } else {
+                        // 普通模式下的选择按钮
                         Button("选择") {
                             selectionMode = true
                         }
                     }
                 }
                 
+                // 歌曲数量
                 Text("\(tracks.count) 首歌曲")
                     .foregroundStyle(.secondary)
             }
@@ -113,9 +147,11 @@ struct TrackListView: View {
             
             Divider()
             
+            // 歌曲列表
             List(tracks) { track in
                 HStack(spacing: 8) {
                     if selectionMode {
+                        // 选择按钮
                         Button(action: {
                             if selectedTracks.contains(track.id) {
                                 selectedTracks.remove(track.id)
@@ -129,6 +165,7 @@ struct TrackListView: View {
                         .buttonStyle(.plain)
                     }
                     
+                    // 歌曲行视图
                     TrackRowView(
                         track: track,
                         isPlaying: player.currentTrack?.id == track.id && player.isPlaying,
@@ -138,22 +175,26 @@ struct TrackListView: View {
                     .contentShape(Rectangle())
                     .onTapGesture {
                         if selectionMode {
+                            // 切换选择状态
                             if selectedTracks.contains(track.id) {
                                 selectedTracks.remove(track.id)
                             } else {
                                 selectedTracks.insert(track.id)
                             }
                         } else {
+                            // 播放歌曲
                             player.load(track: track, playlist: tracks)
                             player.play()
                         }
                     }
                     .contextMenu {
+                        // 播放按钮
                         Button("播放") {
                             player.load(track: track, playlist: tracks)
                             player.play()
                         }
                         
+                        // 添加到播放列表菜单
                         Menu("添加到播放列表") {
                             if library.playlists.isEmpty {
                                 Button("暂无播放列表") {
@@ -183,10 +224,12 @@ struct TrackListView: View {
                         
                         Divider()
                         
+                        // 在 Finder 中显示
                         Button("在 Finder 中显示") {
                             NSWorkspace.shared.activateFileViewerSelecting([track.url])
                         }
                         
+                        // 从资料库删除
                         Button("从资料库删除") {
                             library.removeTrack(track)
                         }
@@ -198,16 +241,24 @@ struct TrackListView: View {
     }
 }
 
+/// 歌曲行视图
+/// 显示单个歌曲的详细信息
 struct TrackRowView: View {
+    /// 歌曲
     let track: Track
+    /// 是否正在播放
     let isPlaying: Bool
+    /// 是否是当前播放的歌曲
     let isCurrentTrack: Bool
+    /// 频谱数据
     let spectrumData: [Float]
+    /// 是否悬停
     @State private var isHovering = false
     
     var body: some View {
         ZStack(alignment: .leading) {
             HStack(spacing: 12) {
+                // 歌曲封面
                 ZStack {
                     if let artwork = track.artwork, let nsImage = NSImage(data: artwork) {
                         Image(nsImage: nsImage)
@@ -218,6 +269,7 @@ struct TrackRowView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                     } else {
+                        // 默认封面
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.gray.opacity(0.3))
                             .overlay(
@@ -229,6 +281,7 @@ struct TrackRowView: View {
                 .frame(width: 40, height: 40)
                 .cornerRadius(4)
                 
+                // 歌曲信息
                 VStack(alignment: .leading, spacing: 2) {
                 Text(truncateText(track.title, maxLength: 50))
                     .font(.system(size: 13))
@@ -242,11 +295,13 @@ struct TrackRowView: View {
             
             Spacer()
             
+            // 频谱视图（播放时显示）
             if isPlaying {
                 SpectrumView(spectrumData: spectrumData)
                     .padding(.trailing, 10)
             }
             
+            // 歌曲时长
             Text(track.formattedDuration)
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
@@ -259,6 +314,7 @@ struct TrackRowView: View {
                 isHovering = $0
             }
             
+            // 悬停时显示完整标题
             if isHovering && track.title.count > 50 {
                 Text(track.title)
                     .font(.system(size: 12))
@@ -275,6 +331,11 @@ struct TrackRowView: View {
         }
     }
     
+    /// 截断文本
+    /// - Parameters:
+    ///   - text: 原始文本
+    ///   - maxLength: 最大长度
+    /// - Returns: 截断后的文本
     private func truncateText(_ text: String, maxLength: Int) -> String {
         if text.count <= maxLength {
             return text
@@ -282,7 +343,9 @@ struct TrackRowView: View {
         return String(text.prefix(maxLength)) + "..."
     }
     
-    // 加载与歌曲同名的本地图片文件
+    /// 加载与歌曲同名的本地图片文件
+    /// - Parameter track: 歌曲
+    /// - Returns: 图片，失败则返回 nil
     private func loadLocalCoverImage(for track: Track) -> Image? {
         // 获取歌曲文件所在目录
         let directory = track.url.deletingLastPathComponent()
@@ -315,7 +378,10 @@ struct TrackRowView: View {
     }
 }
 
+/// 播放指示器视图
+/// 显示播放状态的动画指示器
 struct PlayingIndicatorView: View {
+    /// 是否正在动画
     @State private var animating = false
     
     var body: some View {
@@ -339,7 +405,10 @@ struct PlayingIndicatorView: View {
     }
 }
 
+/// 频谱视图
+/// 显示音频频谱的可视化效果
 struct SpectrumView: View {
+    /// 频谱数据
     let spectrumData: [Float]
     
     var body: some View {
@@ -383,9 +452,14 @@ struct SpectrumView: View {
     }
 }
 
+/// 播放列表选择器视图
+/// 用于选择将歌曲添加到哪个播放列表
 struct PlaylistSelectorView: View {
+    /// 歌曲
     let track: Track
+    /// 音乐库
     @ObservedObject var library: MusicLibrary
+    /// 是否显示
     @Binding var isPresented: Bool
     
     var body: some View {
@@ -395,6 +469,7 @@ struct PlaylistSelectorView: View {
                 .fontWeight(.bold)
             
             if library.playlists.isEmpty {
+                // 没有播放列表时的提示
                 VStack(spacing: 10) {
                     Image(systemName: "music.note.list")
                         .font(.system(size: 48))
@@ -407,6 +482,7 @@ struct PlaylistSelectorView: View {
                         .foregroundStyle(.tertiary)
                 }
             } else {
+                // 显示播放列表列表
                 VStack(spacing: 5) {
                     ForEach(library.playlists) { playlist in
                         Button(action: {
@@ -429,6 +505,7 @@ struct PlaylistSelectorView: View {
                 }
             }
             
+            // 取消按钮
             Button("取消") {
                 isPresented = false
             }
