@@ -95,22 +95,30 @@ struct ArtistRowView: View {
     var body: some View {
         HStack(spacing: 16) {
             ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.gray.opacity(0.3),
-                                Color.gray.opacity(0.1)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                if let artwork = artist.artwork, let nsImage = NSImage(data: artwork) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .clipShape(Circle())
+                        .frame(width: 50, height: 50)
+                } else {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.gray.opacity(0.3),
+                                    Color.gray.opacity(0.1)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
-                    .frame(width: 50, height: 50)
-                
-                Image(systemName: "person.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(.secondary)
+                        .frame(width: 50, height: 50)
+                    
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(.secondary)
+                }
             }
             
             VStack(alignment: .leading, spacing: 4) {
@@ -148,21 +156,29 @@ struct ArtistDetailView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: 20) {
                         ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.gray.opacity(0.3),
-                                            Color.gray.opacity(0.1)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
+                            if let artwork = artist.artwork, let nsImage = NSImage(data: artwork) {
+                                Image(nsImage: nsImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .clipShape(Circle())
+                                    .frame(width: 180, height: 180)
+                            } else {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                Color.gray.opacity(0.3),
+                                                Color.gray.opacity(0.1)
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
                                     )
-                                )
-                            
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 80))
-                                .foregroundStyle(.secondary)
+                                
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 80))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         .frame(width: 180, height: 180)
                         

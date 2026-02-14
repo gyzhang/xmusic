@@ -331,4 +331,35 @@ extension Track {
         
         return nil
     }
+    
+    // 在当前目录及上级目录查找艺人图片
+    static func findArtistImage(from url: URL, artistName: String) -> Data? {
+        let fileManager = FileManager.default
+        let imageExtensions = ["jpg", "jpeg", "png", "gif", "webp"]
+        
+        // 从当前文件所在目录开始，向上查找
+        var currentDirectory = url.deletingLastPathComponent()
+        
+        // 最多向上查找 5 级目录
+        for _ in 0..<5 {
+            // 尝试在当前目录查找艺人图片
+            for ext in imageExtensions {
+                let artistImageURL = currentDirectory.appendingPathComponent("\(artistName).\(ext)")
+                if fileManager.fileExists(atPath: artistImageURL.path) {
+                    if let data = try? Data(contentsOf: artistImageURL) {
+                        return data
+                    }
+                }
+            }
+            
+            // 向上一级目录
+            let parentDirectory = currentDirectory.deletingLastPathComponent()
+            if parentDirectory == currentDirectory { // 已经到达根目录
+                break
+            }
+            currentDirectory = parentDirectory
+        }
+        
+        return nil
+    }
 }
